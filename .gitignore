@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.coverage
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+data/*.db
+logs/*.jsonl
+pcaps/*.pcap
+reports/*.json
+reports/*.txt
+!logs/.gitkeep
+!pcaps/.gitkeep
+!reports/.gitkeep
+!data/.gitkeep

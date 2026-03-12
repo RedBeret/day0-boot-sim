@@ -1,0 +1,132 @@
+name: day0-boot-sim
+
+services:
+  boot-sim:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["day0-sim", "api", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      DAY0_SERVICE_NAME: boot-sim
+      DAY0_LOG_PATH: /artifacts/logs/boot-sim.jsonl
+      DAY0_DATABASE_PATH: /data/day0.db
+      DAY0_DHCP_SERVICE_URL: http://dhcp.day0.example:8100
+      DAY0_HTTP_FILE_PROBE_URL: http://files.day0.example:8080/
+      DAY0_HTTP_TIMEOUT_SECONDS: 1.0
+      DAY0_MAX_ATTEMPTS: 3
+      DAY0_BACKOFF_SECONDS: 0.3
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./logs:/artifacts/logs
+      - ./data:/data
+    depends_on:
+      dhcp:
+        condition: service_healthy
+      http-files:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    networks:
+      day0:
+        aliases:
+          - api.day0.example
+
+  dhcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["day0-sim", "dhcp", "--host", "0.0.0.0", "--port", "8100"]
+    environment:
+      DAY0_DHCP_LOG_PATH: /artifacts/logs/dhcp-service.jsonl
+      DAY0_DHCP_HTTP_BOOT_BASE_URL: http://files.day0.example:8080/bootstrap
+      DAY0_DHCP_CONFIG_BASE_URL: http://files.day0.example:8080/configs
+      DAY0_DHCP_TFTP_SERVER_URI: tftp://tftp.day0.example:6969/bootstrap/basic.json
+      DAY0_DHCP_SLOW_RESPONSE_SECONDS: 1.5
+    volumes:
+      - ./logs:/artifacts/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8100/health', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    networks:
+      day0:
+        aliases:
+          - dhcp.day0.example
+
+  http-files:
+    image: python:3.12-slim
+    command: ["python", "-m", "http.server", "8080", "--directory", "/srv/http"]
+    volumes:
+      - ./bootfiles:/srv/http:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 2s
+    networks:
+      day0:
+        aliases:
+          - files.day0.example
+          - config.day0.example
+
+  tftp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["day0-sim", "tftp", "--root", "/srv/tftp", "--host", "0.0.0.0", "--port", "6969", "--health-file", "/tmp/tftp.ready"]
+    profiles: ["extras"]
+    environment:
+      DAY0_TFTP_LOG_PATH: /artifacts/logs/tftp-service.jsonl
+    volumes:
+      - ./bootfiles:/srv/tftp:ro
+      - ./logs:/artifacts/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "from pathlib import Path; import sys; sys.exit(0 if Path('/tmp/tftp.ready').exists() else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 2s
+    networks:
+      day0:
+        aliases:
+          - tftp.day0.example
+
+  packet-capture:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["day0-sim", "pcap-sidecar"]
+    environment:
+      DAY0_PCAP_LOG_PATH: /artifacts/logs/pcap-sidecar.jsonl
+      DAY0_API_URL: http://boot-sim:8000
+      DAY0_PCAP_OUTPUT_PATH: /artifacts/pcaps/day0-boot-sim.pcap
+      DAY0_PCAP_POLL_INTERVAL_SECONDS: 1.0
+      DAY0_PCAP_HEALTH_FILE: /tmp/pcap-sidecar.ready
+    depends_on:
+      boot-sim:
+        condition: service_healthy
+    volumes:
+      - ./logs:/artifacts/logs
+      - ./pcaps:/artifacts/pcaps
+    healthcheck:
+      test: ["CMD", "python", "-c", "from pathlib import Path; import sys; sys.exit(0 if Path('/tmp/pcap-sidecar.ready').exists() else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 2s
+    networks:
+      day0:
+        aliases:
+          - capture.day0.example
+
+networks:
+  day0:
+    name: day0-boot-sim-net

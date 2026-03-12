@@ -1,0 +1,10 @@
+{
+  "device_id": "edge-lab-01",
+  "operator": "bootstrap-operator",
+  "notes": "Synthetic config fragment used for local-only training.",
+  "config_lines": [
+    "set interfaces mgmt0 description \"synthetic management uplink\"",
+    "set system login user bootstrap-operator authentication plaintext-password fake-password",
+    "set system services https listen-address 192.0.2.21"
+  ]
+}

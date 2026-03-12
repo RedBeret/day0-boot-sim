@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Read the runbook
+    url: https://github.com/RedBeret/day0-boot-sim/blob/main/docs/runbook.md
+    about: Start here for setup, demo, and rollback guidance.
+  - name: Read the failure modes guide
+    url: https://github.com/RedBeret/day0-boot-sim/blob/main/docs/failure-modes.md
+    about: Check the known failure paths before opening a bug.

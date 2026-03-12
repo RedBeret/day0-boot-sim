@@ -1,0 +1,12 @@
+{
+  "schema_version": "2026-03-11",
+  "hostname": "edge-lab-01.day0.example",
+  "bootstrap_actions": [
+    "set-system-hostname edge-lab-01.day0.example",
+    "enable-management-dhcp-client",
+    "register-with-config-server http://files.day0.example:8080/configs/edge-lab-01.json"
+  ],
+  "final_state": "READY",
+  "config_server_uri": "http://files.day0.example:8080/configs/edge-lab-01.json",
+  "checksum_seed": "basic-bootstrap-v1"
+}
